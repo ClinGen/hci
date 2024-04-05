@@ -1,0 +1,8 @@
+# General stuff:
+.env
+
+# Go stuff:
+build
+
+# Python stuff:
+.mypy_cache
