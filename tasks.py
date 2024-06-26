@@ -3,9 +3,11 @@
 All command line tasks should be defined in this file. The only
 exception to this is managing dependencies.
 
-All commands in this file assume you're in the root directory and
+All commands in this file assume you're in the root directory, and
 you've activated the virtual environment.
 """
+
+import os
 
 # Invoke always requires a context parameter, even if it ends up going
 # unused. As of this writing, there are a handful of tasks that don't
@@ -27,16 +29,15 @@ ENV_ACTUAL = ".env"
 TEMPLATE_CONF = dotenv_values(ENV_TEMPLATE)
 ACTUAL_CONF = dotenv_values(ENV_ACTUAL)
 
-# Absolute paths to src and build directories:
-SRC_DIR = f"{ACTUAL_CONF['HCI_ROOT_DIR']}/src"
-BUILD_DIR = f"{ACTUAL_CONF['HCI_ROOT_DIR']}/build"
-
 
 @task
 def fmt(c):
     """Format code."""
     c.run("go fmt ./...")
     c.run("black tasks.py")
+    if not os.getenv("GITHUB_ACTIONS"):
+        c.run("yamlfmt ./.github/**/*")
+    c.run("mdformat .")
 
 
 @task
@@ -49,13 +50,13 @@ def lint(c):
 @task
 def clean(c):
     """Remove old binary."""
-    c.run(f"rm -rf {BUILD_DIR}/*")
+    c.run("rm -rf build/*")
 
 
 @task
 def build(c):
     """Build the binary."""
-    c.run(f"go build -o {BUILD_DIR}/hci {SRC_DIR}")
+    c.run("go build -o build/hci ./src")
 
 
 @task
@@ -86,4 +87,13 @@ def check(c):
 @task
 def dev(c):
     """Run the development server."""
-    c.run(f"source {ENV_ACTUAL} && go run {SRC_DIR}/main.go")
+    c.run(f"source {ENV_ACTUAL} && go run src/main.go")
+
+
+@task
+def mkenv(c):
+    """Make a .env file for GitHub Actions."""
+    c.run("touch ${GITHUB_WORKSPACE}/.env")
+    c.run(
+        "echo \"export HCI_ROOT_DIR='$GITHUB_WORKSPACE'\" >> ${GITHUB_WORKSPACE}/.env"
+    )

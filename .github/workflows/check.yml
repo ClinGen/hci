@@ -1,0 +1,31 @@
+name: continuous integration
+on: [push, pull_request]
+permissions:
+  contents: read
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Go 1.22
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.22.x"
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: install Pipenv
+        run: pip install pipenv --user
+      - name: install dependencies
+        run: pipenv sync --dev # Installs all deps, including dev deps, from Pipfile.lock.
+      - name: Create .env file for GitHub Actions
+        run: pipenv run invoke mkenv
+      - name: format
+        run: pipenv run invoke fmt
+      - name: lint
+        run: pipenv run invoke lint
+      - name: check types
+        run: pipenv run invoke build
+      - name: run tests
+        run: pipenv run invoke test
